@@ -3,17 +3,16 @@ package com.npccontactfilter;
 import com.google.inject.Provides;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Vector;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.events.WidgetLoaded;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-
 @Slf4j
 @PluginDescriptor(
 	name = "NPC Contact Filter"
@@ -26,11 +25,13 @@ public class NPCContactFilterPlugin extends Plugin
 	private static final int Y_OFFSET = 125;
 	private static final int COLUMNS = 7;
 
-	private static  class SortNPCs implements Comparator<Widget>
+	private static class SortNPCs implements Comparator<Widget>
 	{
-		public int compare(Widget a, Widget b){
-			return (a.getRelativeX() / X_OFFSET + (a.getRelativeY() / Y_OFFSET) * COLUMNS) - (b.getRelativeX() / X_OFFSET + (b.getRelativeY() / Y_OFFSET) * COLUMNS);
+		public int compare(Widget a, Widget b)
+		{
+			return (a.getOriginalX() / X_OFFSET + (a.getOriginalY() / Y_OFFSET) * COLUMNS) - (b.getOriginalX() / X_OFFSET + (b.getOriginalY() / Y_OFFSET) * COLUMNS);
 		}
+
 	}
 
 	@Inject
@@ -131,33 +132,48 @@ public class NPCContactFilterPlugin extends Plugin
 		return !shouldKeep;
 	}
 
-	private Vector<Widget> hideWidgets(Widget[] NPCWidgets)
+	private void hideWidgets(Widget[] npcWidgets)
 	{
-		Vector<Widget> unhidden = new Vector<>();
-		Arrays.sort(NPCWidgets, new SortNPCs());
-
-		for (Widget NPCWidget : NPCWidgets)
+		for (Widget npcWidget : npcWidgets)
 		{
-			if (shouldHide(NPCWidget.getStaticChildren()[1].getText()))
-			{
-				NPCWidget.setHidden(true);
-			}
-			else
-			{
-				unhidden.add((NPCWidget));
-			}
+			npcWidget.setHidden(shouldHide(npcWidget.getStaticChildren()[1].getText()));
 		}
-
-		return unhidden;
 	}
 
-	private void moveWidgets(Vector<Widget> widgets)
+	private void moveWidgets(Widget[] npcWidgets)
 	{
-		for (int i = 0; i < widgets.size(); i++)
+		int index = 0;
+		for (Widget npcWidget : npcWidgets)
 		{
-			int x = X_OFFSET * (i % COLUMNS);
-			int y = Y_OFFSET * (i / COLUMNS);
-			widgets.get(i).setPos(x, y);
+			if (!shouldHide(npcWidget.getStaticChildren()[1].getText()))
+			{
+				int x = X_OFFSET * (index % COLUMNS);
+				int y = Y_OFFSET * (index / COLUMNS);
+				npcWidget.setForcedPosition(x, y);
+				index++;
+			}
+		}
+	}
+
+	private void modifyNPCContactWidget()
+	{
+		Widget NPCContactWidget = client.getWidget(NPC_CONTACT_WIDGET_ID);
+		if (NPCContactWidget != null)
+		{
+			Widget[] npcWidgets = NPCContactWidget.getStaticChildren();
+			Arrays.sort(npcWidgets, new SortNPCs());
+
+			hideWidgets(npcWidgets);
+			moveWidgets(npcWidgets);
+		}
+	}
+
+	@Subscribe
+	public void onConfigChanged(ConfigChanged configChanged)
+	{
+		if (configChanged.getGroup().equals("npc contact filter"))
+		{
+			modifyNPCContactWidget();
 		}
 	}
 
@@ -166,12 +182,7 @@ public class NPCContactFilterPlugin extends Plugin
 	{
 		if (widgetloaded.getGroupId() == NPC_CONTACT_WIDGET_GROUP)
 		{
-			Widget NPCContactWidget = client.getWidget(NPC_CONTACT_WIDGET_ID);
-			if (NPCContactWidget != null)
-			{
-				Vector<Widget> unhidden = hideWidgets(NPCContactWidget.getStaticChildren());
-				moveWidgets((unhidden));
-			}
+			modifyNPCContactWidget();
 		}
 	}
 
