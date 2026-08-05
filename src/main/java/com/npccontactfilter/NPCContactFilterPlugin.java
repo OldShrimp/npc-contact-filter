@@ -1,12 +1,11 @@
 package com.npccontactfilter;
 
 import com.google.inject.Provides;
-import java.util.Arrays;
-import java.util.Comparator;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.events.WidgetLoaded;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.config.ConfigManager;
@@ -25,17 +24,11 @@ public class NPCContactFilterPlugin extends Plugin
 	private static final int Y_OFFSET = 125;
 	private static final int COLUMNS = 7;
 
-	private static class SortNPCs implements Comparator<Widget>
-	{
-		public int compare(Widget a, Widget b)
-		{
-			return (a.getOriginalX() / X_OFFSET + (a.getOriginalY() / Y_OFFSET) * COLUMNS) - (b.getOriginalX() / X_OFFSET + (b.getOriginalY() / Y_OFFSET) * COLUMNS);
-		}
-
-	}
-
 	@Inject
 	private Client client;
+
+    @Inject
+    private ClientThread clientThread;
 
 	@Inject
 	private NPCContactFilterConfig config;
@@ -43,13 +36,13 @@ public class NPCContactFilterPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
-		log.info("NPC Contact Filter started!");
+		log.debug("NPC Contact Filter started!");
 	}
 
 	@Override
 	protected void shutDown() throws Exception
 	{
-		log.info("NPC Contact Filter stopped!");
+		log.debug("NPC Contact Filter stopped!");
 	}
 
 	private boolean shouldHide(String name)
@@ -102,6 +95,9 @@ public class NPCContactFilterPlugin extends Plugin
 			case "Konar":
 				shouldKeep = config.konar();
 				break;
+            case "Mortimer":
+                shouldKeep = config.mortimer();
+                break;
 			case "Murphy":
 				shouldKeep = config.murphy();
 				break;
@@ -136,7 +132,9 @@ public class NPCContactFilterPlugin extends Plugin
 	{
 		for (Widget npcWidget : npcWidgets)
 		{
-			npcWidget.setHidden(shouldHide(npcWidget.getStaticChildren()[1].getText()));
+			npcWidget.setHidden(shouldHide(npcWidget.getDynamicChildren()[1].getText()));
+
+            //npcWidget.revalidate();
 		}
 	}
 
@@ -145,11 +143,13 @@ public class NPCContactFilterPlugin extends Plugin
 		int index = 0;
 		for (Widget npcWidget : npcWidgets)
 		{
-			if (!shouldHide(npcWidget.getStaticChildren()[1].getText()))
+			if (!shouldHide(npcWidget.getDynamicChildren()[1].getText()))
 			{
 				int x = X_OFFSET * (index % COLUMNS);
 				int y = Y_OFFSET * (index / COLUMNS);
-				npcWidget.setForcedPosition(x, y);
+				npcWidget.setPos(x, y);
+                npcWidget.revalidate();
+
 				index++;
 			}
 		}
@@ -160,11 +160,12 @@ public class NPCContactFilterPlugin extends Plugin
 		Widget NPCContactWidget = client.getWidget(NPC_CONTACT_WIDGET_ID);
 		if (NPCContactWidget != null)
 		{
-			Widget[] npcWidgets = NPCContactWidget.getStaticChildren();
-			Arrays.sort(npcWidgets, new SortNPCs());
-
-			hideWidgets(npcWidgets);
-			moveWidgets(npcWidgets);
+			Widget[] npcWidgets = NPCContactWidget.getDynamicChildren();
+            if (npcWidgets != null)
+            {
+                hideWidgets(npcWidgets);
+                moveWidgets(npcWidgets);
+            }
 		}
 	}
 
@@ -173,7 +174,7 @@ public class NPCContactFilterPlugin extends Plugin
 	{
 		if (configChanged.getGroup().equals("npc contact filter"))
 		{
-			modifyNPCContactWidget();
+            clientThread.invokeLater(this::modifyNPCContactWidget);
 		}
 	}
 
@@ -182,7 +183,7 @@ public class NPCContactFilterPlugin extends Plugin
 	{
 		if (widgetloaded.getGroupId() == NPC_CONTACT_WIDGET_GROUP)
 		{
-			modifyNPCContactWidget();
+            clientThread.invokeLater(this::modifyNPCContactWidget);
 		}
 	}
 

@@ -191,12 +191,24 @@ public interface NPCContactFilterConfig extends Config
 		return true;
 	}
 
+    @ConfigItem(
+            keyName = "mortimer",
+            name = "Mortimer",
+            description = "Show Mortimer",
+            section = npcSection,
+            position = 16
+    )
+    default boolean mortimer()
+    {
+        return true;
+    }
+
 	@ConfigItem(
 		keyName = "cyrisus",
 		name = "Cyrisus",
 		description = "Show Cyrisus",
 		section = npcSection,
-		position = 16
+		position = 17
 	)
 	default boolean cyrisus()
 	{
@@ -208,7 +220,7 @@ public interface NPCContactFilterConfig extends Config
 		name = "Smoggy",
 		description = "Show Smoggy",
 		section = npcSection,
-		position = 17
+		position = 18
 	)
 	default boolean smoggy()
 	{
@@ -220,7 +232,7 @@ public interface NPCContactFilterConfig extends Config
 		name = "Ginea",
 		description = "Show Ginea",
 		section = npcSection,
-		position = 18
+		position = 19
 	)
 	default boolean ginea()
 	{
@@ -232,7 +244,7 @@ public interface NPCContactFilterConfig extends Config
 		name = "Watson",
 		description = "Show Watson",
 		section = npcSection,
-		position = 19
+		position = 20
 	)
 	default boolean watson()
 	{
@@ -244,7 +256,7 @@ public interface NPCContactFilterConfig extends Config
 		name = "Barbarian Guard",
 		description = "Show Barbarian Guard",
 		section = npcSection,
-		position = 20
+		position = 21
 	)
 	default boolean barbarianGuard()
 	{
@@ -256,22 +268,22 @@ public interface NPCContactFilterConfig extends Config
 		name = "Amy",
 		description = "Show Amy",
 		section = npcSection,
-		position = 21
+		position = 22
 	)
 	default boolean amy()
 	{
 		return true;
 	}
 
-	@ConfigItem(
-		keyName = "random",
-		name = "Random",
-		description = "Show Random",
-		section = npcSection,
-		position = 22
-	)
-	default boolean random()
-	{
-		return true;
-	}
+    @ConfigItem(
+            keyName = "random",
+            name = "Random",
+            description = "Show Random",
+            section = npcSection,
+            position = 23
+    )
+    default boolean random()
+    {
+        return true;
+    }
 }
